@@ -6,7 +6,8 @@ import re
 from selenium import webdriver
 from tqdm import tqdm
 import time
-
+import parser
+import argparse
 
 '''
 cchardet, lxml 都是可以加速 bs4 的套件
@@ -24,8 +25,13 @@ https://www.learncodewithmike.com/2020/11/multithreading-with-python-web-scrapin
 https://thehftguy.com/2020/07/28/making-beautifulsoup-parsing-10-times-faster/
 https://www.crummy.com/software/BeautifulSoup/bs4/doc.zh/#id65
 '''
+parser = argparse.ArgumentParser()
+parser.add_argument('--start_page', type=int, default=1)
+parser.add_argument('--end_page', type=int, default=2)
 
-
+args = parser.parse_args()
+start_page = args.start_page
+end_page = args.end_page
 
 page_url_list = []
 doc_list = []
@@ -53,12 +59,12 @@ def get_announce_page(start_page: int, end_page: int):
 # 把公告裡有 Download 的連結都抓下來
 def get_doc_url(list: list):
   
-    for page in list:
+    for index,page in enumerate(iterable=tqdm(list)):
         web = requests_session.get(page)
         web.encoding = 'utf-8' # 設定編碼
         page_soup = BeautifulSoup(web.text, 'lxml', parse_only=SoupStrainer(class_="odd")) # 目前檔案下載都會在 odd class 裡面
         title = page_soup.find('td').text
-        print(f'文字標題: {title}')
+        print(f'第 {index} 篇公告，文字標題: {title}')
         for link in page_soup.find_all('a'):
             if re.match(r'/ncku_csie/Attachment/Download/', link.get('href')): # 有 Download 的連結
                 doc_list.append('https://www.csie.ncku.edu.tw' + link.get('href')) # 把連結加到 doc_list
@@ -75,7 +81,7 @@ def download_doc(list: list):
         driver.close() # 關閉瀏覽器
  
 
-get_announce_page(start_page=1, end_page=2)
+get_announce_page(start_page=start_page, end_page=end_page)
 get_doc_url(list=page_url_list)
 download_doc(list=doc_list)
 
