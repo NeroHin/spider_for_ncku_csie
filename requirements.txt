@@ -1,0 +1,6 @@
+beautifulsoup4
+cchardet
+lxml
+requests
+selenium
+tqdm
