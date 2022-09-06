@@ -10,6 +10,16 @@
 - webdriver 需要下載 chromedriver
     - dowload link: https://chromedriver.chromium.org/downloads
 
+---
+
+> usage
+
+- 目前有兩個變數可以輸入
+    - start_page: 起始頁數
+    - end_page: 結束頁數
+- 範例
+    - python3 app.py --start_page=1 --end_page=20
+
 
 ---
 > requirements
