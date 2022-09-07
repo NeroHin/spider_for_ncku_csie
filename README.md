@@ -17,8 +17,12 @@
 - 目前有兩個變數可以輸入
     - start_page: 起始頁數
     - end_page: 結束頁數
+    - download: 是否要下載文件
+        - True: 下載文件
+        - False: 只抓取連結
 - 範例
-    - python3 app.py --start_page=1 --end_page=20
+    - python3 app.py --start_page=1 --end_page=20 # 抓取 1~20 頁的連結並下載
+    - python3 app.py --start_page=1 --end_page=20 --download=False # 只抓取 1~20 頁的連結
 ---
 
 > TODO
