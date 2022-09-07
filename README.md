@@ -19,6 +19,12 @@
     - end_page: 結束頁數
 - 範例
     - python3 app.py --start_page=1 --end_page=20
+---
+
+> TODO
+
+- [x] 使用 threading 抓下載文件的連結
+- [ ] 使用 threading + selenium 下載文件
 
 
 ---

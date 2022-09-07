@@ -9,6 +9,7 @@ import time
 import parser
 import argparse
 import threading
+from selenium.webdriver.chrome.service import Service
 
 '''
 cchardet, lxml 都是可以加速 bs4 的套件
@@ -79,8 +80,7 @@ def get_doc_url(page: str):
 def download_doc(list: list):     
     for doc in tqdm(doc_list):
         doc = ncku_url + doc
-        driverPath = webdriver_path
-        driver = webdriver.Chrome(driverPath)
+        driver = webdriver.Chrome(service=Service(webdriver_path))
         driver.get(doc) # 進入網頁
         time.sleep(1) # 等待網頁載入
         driver.close() # 關閉瀏覽器
@@ -96,6 +96,8 @@ print(f'共抓取 {len(page_url_list)} 篇公告\n')
 for index, page in enumerate(page_url_list):
     page_thread = threading.Thread(target=get_doc_url, args=(page,))
     thread_list.append(page_thread)
+
+
 
 # 開始
 for thread in thread_list:
