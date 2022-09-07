@@ -28,10 +28,12 @@ https://www.crummy.com/software/BeautifulSoup/bs4/doc.zh/#id65
 parser = argparse.ArgumentParser()
 parser.add_argument('--start_page', type=int, default=1)
 parser.add_argument('--end_page', type=int, default=2)
+parser.add_argument('--download', type=str, default=True)
 
 args = parser.parse_args()
 start_page = args.start_page
 end_page = args.end_page
+download = args.download
 
 page_url_list = []
 doc_list = []
@@ -42,8 +44,8 @@ requests_session = requests.Session()
 def get_announce_page(start_page: int, end_page: int):
 
     base_url = 'https://www.csie.ncku.edu.tw/ncku_csie/announce/news/1000'
-    urls = [f'{base_url}?Infolist_page={page}' for page in range(start_page, end_page)]  # 1~100頁的網址清單，100 頁是到 2020-08-17
-    
+    urls = [f'{base_url}?Infolist_page={page}' for page in range(start_page, end_page+1,1)]  # 1~100頁的網址清單，100 頁是到 2020-08-17
+    print(urls)
     for url in tqdm(urls):
 
         web = requests_session.get(url)
@@ -72,16 +74,28 @@ def get_doc_url(list: list):
 # 下載檔案
 ## TODO 下載到特定資料夾和名字
 
-def download_doc(list: list):        
+def download_doc(list: list):     
     for doc in tqdm(doc_list):
         driverPath = webdriver_path
         driver = webdriver.Chrome(driverPath)
         driver.get(doc) # 進入網頁
         time.sleep(1) # 等待網頁載入
         driver.close() # 關閉瀏覽器
- 
+
+start_time = time.time()
+print(f'抓取 {start_page} ~ {end_page} 頁的公告')
+print(f'開始時間: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}')
 
 get_announce_page(start_page=start_page, end_page=end_page)
 get_doc_url(list=page_url_list)
-download_doc(list=doc_list)
+
+if download == True:
+    download_doc(list=doc_list)
+    print(f'共抓取 {len(doc_list)} 個檔案')
+
+
+print(f'結束時間: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}')
+print(f'共抓取 {len(page_url_list)} 篇公告')
+end_time = time.time()
+print(f'所用時間: {time.time() - start_time}')  
 
