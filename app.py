@@ -10,27 +10,13 @@ import parser
 import argparse
 import threading
 from selenium.webdriver.chrome.service import Service
+import pathlib
 
-'''
-cchardet, lxml 都是可以加速 bs4 的套件
-要先 pip3 install cchardet lxml
 
-webdriver 需要下載 chromedriver
-dowload link: https://chromedriver.chromium.org/downloads
-
-refe:
-https://iter01.com/568912.html
-https://www.browserstack.com/guide/download-file-using-selenium-python
-https://ithelp.ithome.com.tw/articles/10196817
-https://stackoverflow.com/questions/38459972/rename-downloaded-files-selenium
-https://www.learncodewithmike.com/2020/11/multithreading-with-python-web-scraping.html
-https://thehftguy.com/2020/07/28/making-beautifulsoup-parsing-10-times-faster/
-https://www.crummy.com/software/BeautifulSoup/bs4/doc.zh/#id65
-'''
 parser = argparse.ArgumentParser()
-parser.add_argument('--start_page', type=int, default=1)
-parser.add_argument('--end_page', type=int, default=2)
-parser.add_argument('--download', type=str, default=True)
+parser.add_argument('--start_page', type=int, default=1, help='start page, default: 1')
+parser.add_argument('--end_page', type=int, default=2, help='end page, default: 2')
+parser.add_argument('--download', type=str, default=False, help='download doc or not, default: False')
 
 args = parser.parse_args()
 start_page = args.start_page
@@ -39,13 +25,31 @@ download = args.download
 
 page_url_list = []
 doc_list = []
-webdriver_path = '/Users/nerohin/Downloads/chromedriver' # chromedriver 路徑
+thread_list = []
+webdriver_path = './chromedriver' # chromedriver path
+download_path = "/download" # download path
+
+# if download_path not exist, create it
+pathlib.Path(download_path).mkdir(parents=True, exist_ok=True)
+
+# selenium webdriver config
+chrome_options = webdriver.ChromeOptions()
+prefs = {'profile.default_content_settings.popups': 0, # disable download window pop up
+'download.default_directory':download_path, # setting download path
+"profile.default_content_setting_values.automatic_downloads":1, # allow multiple download
+"download.manager.showWhenStarting":False, # disable download manager
+}
+chrome_options.add_experimental_option('prefs', prefs)
+
+
+# main
 requests_session = requests.Session()
 ncku_url = 'https://www.csie.ncku.edu.tw'
-thread_list = []
+
+
 
 # 把所有公告頁面的連結都抓下來
-def get_announce_page(start_page: int, end_page: int):
+def get_announce_page(start_page: int, end_page: int) -> list:
 
     base_url = 'https://www.csie.ncku.edu.tw/ncku_csie/announce/news/1000'
     urls = [f'{base_url}?Infolist_page={page}' for page in range(start_page, end_page+1,1)]  # 1~100頁的網址清單，100 頁是到 2020-08-17
@@ -62,7 +66,7 @@ def get_announce_page(start_page: int, end_page: int):
                     page_url_list.append(link.get('href')) # 把連結加到 page_url_list
 
 # 把公告裡有 Download 的連結都抓下來
-def get_doc_url(page: str):
+def get_doc_url(page: str) -> list:
 
     page = ncku_url + page
     web = requests_session.get(page)
@@ -70,6 +74,7 @@ def get_doc_url(page: str):
     page_soup = BeautifulSoup(web.text, 'lxml', parse_only=SoupStrainer(class_="odd")) # 目前檔案下載都會在 odd class 裡面
     title = page_soup.find('td').text
     print(f'文字標題: {title}')
+    print(f'網址: {page}\n')
     for link in page_soup.find_all('a'):
         if re.match(r'/ncku_csie/Attachment/Download/', link.get('href')): # 有 Download 的連結
             doc_list.append(link.get('href')) # 把連結加到 doc_list
@@ -77,41 +82,41 @@ def get_doc_url(page: str):
 # 下載檔案
 ## TODO 下載到特定資料夾和名字
 
-def download_doc(list: list):     
+def download_doc(doc_list: list):     
     for doc in tqdm(doc_list):
         doc = ncku_url + doc
-        driver = webdriver.Chrome(service=Service(webdriver_path))
+        driver = webdriver.Chrome(service=Service(webdriver_path), options=chrome_options)
         driver.get(doc) # 進入網頁
         time.sleep(1) # 等待網頁載入
         driver.close() # 關閉瀏覽器
 
-start_time = time.time()
-print(f'抓取 {start_page} ~ {end_page} 頁的公告\n')
+if __name__ == '__main__':
 
-get_announce_page(start_page=start_page, end_page=end_page)
-print(f'共抓取 {len(page_url_list)} 篇公告\n')
+    start_time = time.time()
+    print(f'抓取 {start_page} ~ {end_page} 頁的公告\n')
 
-# get doc url with threading
+    get_announce_page(start_page=start_page, end_page=end_page)
+    print(f'共抓取 {len(page_url_list)} 篇公告\n')
 
-for index, page in enumerate(page_url_list):
-    page_thread = threading.Thread(target=get_doc_url, args=(page,))
-    thread_list.append(page_thread)
+    # get doc url with threading
 
+    for index, page in enumerate(page_url_list):
+        page_thread = threading.Thread(target=get_doc_url, args=(page,))
+        thread_list.append(page_thread)
 
+    # 開始
+    for thread in thread_list:
+        thread.start()
 
-# 開始
-for thread in thread_list:
-    thread.start()
+    # 等待所有子執行緒結束
+    for thread in thread_list:
+        thread.join()
 
-# 等待所有子執行緒結束
-for thread in thread_list:
-    thread.join()
+    if download == True:
+        download_doc(doc_list=doc_list)
+        print(f'共抓取 {len(doc_list)} 個檔案\n')
 
-if download == True:
-    download_doc(list=doc_list)
     print(f'共抓取 {len(doc_list)} 個檔案\n')
-
-print(f'共抓取 {len(doc_list)} 個檔案\n')
-end_time = time.time()
-print(f'所用時間: {time.time() - start_time}')  
+    end_time = time.time()
+    print(f'所用時間: {time.time() - start_time}')  
 
